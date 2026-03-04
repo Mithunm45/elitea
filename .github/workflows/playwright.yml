@@ -1,6 +1,12 @@
 name: Playwright Automation Tests
 
 on:
+  push:
+    branches: [ master ]
+
+  pull_request:
+    branches: [ master ]
+
   workflow_dispatch:
     inputs:
       trigger_source:
@@ -16,6 +22,8 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+      with:
+        ref: master
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
