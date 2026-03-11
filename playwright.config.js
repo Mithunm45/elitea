@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
 
 /**
  * Read environment variables from file.
@@ -12,6 +13,9 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
+
+dotenv.config();
+
 export default defineConfig({
   testDir: './tests',
   /* Fail the build on CI if you accidentally left test.only in the source code. */
