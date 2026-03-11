@@ -61,18 +61,3 @@ jobs:
           name: test-results
           path: test-results/
           retention-days: 7
-
-      # Notify Elitea after artifacts are uploaded
-      - name: Notify Elitea Pipeline
-        if: always()
-        run: |
-          curl -X POST https://next.elitea.ai/api/v1/pipelines/22/run \
-          -H "Authorization: Bearer ${{ secrets.ELITEA_TOKEN }}" \
-          -H "Content-Type: application/json" \
-          -d '{
-                "pipeline_id": 22,
-                "inputs": {
-                  "owner": "Mithunm45",
-                  "repo": "elitea"
-                }
-              }'
