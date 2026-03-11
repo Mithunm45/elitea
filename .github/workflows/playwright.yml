@@ -66,7 +66,7 @@ jobs:
       - name: Notify Elitea Pipeline
         if: always()
         run: |
-          curl -X POST https://next.elitea.ai/api/pipelines/run \
+          curl -X POST https://next.elitea.ai/api/v1/pipelines/22/run \
           -H "Authorization: Bearer ${{ secrets.ELITEA_TOKEN }}" \
           -H "Content-Type: application/json" \
           -d '{
