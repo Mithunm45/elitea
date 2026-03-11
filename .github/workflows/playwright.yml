@@ -70,7 +70,7 @@ jobs:
           -H "Authorization: Bearer ${{ secrets.ELITEA_TOKEN }}" \
           -H "Content-Type: application/json" \
           -d '{
-                "pipeline_id": "22",
+                "pipeline_id": 22,
                 "inputs": {
                   "owner": "Mithunm45",
                   "repo": "elitea"
