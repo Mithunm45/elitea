@@ -1,0 +1,103 @@
+image: node:lts
+
+stages:
+  - test
+  - notify_elitea
+
+variables:
+  npm_cache_dir: $CI_PROJECT_DIR/.npm
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "0"
+
+cache:
+  paths:
+    - .npm/
+    - node_modules/
+
+# ============================================================================
+# JOB 1: RUN PLAYWRIGHT TESTS
+# ============================================================================
+
+playwright_tests:
+  stage: test
+  timeout: 60 minutes
+
+  before_script:
+    - echo "Installing dependencies..."
+    - npm ci --cache .npm
+    - echo "Installing Playwright browsers..."
+    - npx playwright install --with-deps
+
+  script:
+    - echo "Running Playwright tests..."
+    - npx playwright test --reporter=line,json,html
+    - TEST_EXIT_CODE=$?
+    - |
+      if [ "$TEST_EXIT_CODE" -eq 0 ]; then
+        echo "TEST_STATUS=PASSED" >> test_status.env
+      else
+        echo "TEST_STATUS=FAILED" >> test_status.env
+      fi
+    - echo "Ensuring report directories exist..."
+    - mkdir -p playwright-report
+    - mkdir -p test-results
+    - exit 0
+
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+      - test-results/
+      - test_status.env
+    reports:
+      dotenv: test_status.env
+    expire_in: 7 days
+
+  only:
+    - main
+    - merge_requests
+
+  tags:
+    - docker
+    - shared
+
+# ============================================================================
+# JOB 2: TRIGGER ELITEA PIPELINE
+# ============================================================================
+
+trigger_elitea_pipeline:
+  stage: notify_elitea
+  image: curlimages/curl:latest
+
+  needs:
+    - playwright_tests
+
+  when: always
+
+  script:
+    - echo "Preparing ELITEA trigger payload..."
+    - |
+      PIPELINE_INFO="Project: ${CI_PROJECT_NAME}"
+      PIPELINE_INFO="${PIPELINE_INFO}\nBranch: ${CI_COMMIT_REF_NAME}"
+      PIPELINE_INFO="${PIPELINE_INFO}\nCommit: ${CI_COMMIT_SHORT_SHA}"
+      PIPELINE_INFO="${PIPELINE_INFO}\nPipeline URL: ${CI_PIPELINE_URL}"
+      PIPELINE_INFO="${PIPELINE_INFO}\nTriggered By: ${GITLAB_USER_LOGIN}"
+      PIPELINE_INFO="${PIPELINE_INFO}\nStatus: All tests executed"
+
+    - echo "Triggering ELITEA pipeline..."
+    - |
+      curl --fail --retry 3 --retry-delay 5 \
+        --request POST \
+        --header "Authorization: Bearer ${ELITEA_PAT}" \
+        --header "Content-Type: application/json" \
+        --data "{\"user_input\": \"Pipeline Finished\n\n${PIPELINE_INFO}\n\nArtifacts API: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/jobs\", \"chat_history\": []}" \
+        "https://next.elitea.ai/api/v1/applications/predict/prompt_lib/${ELITEA_PROJECT_ID}/${ELITEA_AGENT_VERSION_ID}"
+
+    - echo "ELITEA pipeline triggered successfully"
+
+  only:
+    - main
+    - merge_requests
+
+  tags:
+    - docker
+    - shared
